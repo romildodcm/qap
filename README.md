@@ -24,13 +24,18 @@
 
 Turn your **Quansheng UV-K5(8)** into a **dedicated aviation scanner**, focused exclusively on the **118–136 MHz (AM)** band — tower (TWR), approach (APP), en-route (ACC), ATIS, ground (GND) and the 121.500 MHz emergency frequency.
 
+> ⚠️ **Receive-only.** This firmware never transmits. Transmitting on aviation frequencies is **illegal**.
+
+> 🧪 **Evolving / experimental.** This firmware is under active development — use at **your own risk**. Back up the factory firmware before flashing.
+
+> 📡 **By default**, the firmware ships with **Foz do Iguaçu (SBFI/IGU)** frequencies pre-loaded in the scanner.
+
 - 🎧 **Dedicated AM reception** on 118.000–136.975 MHz, with **8.33 / 25 kHz** steps;
 - 📡 **Advanced AM AGC** (32 levels, 3 dB hysteresis) — clean audio from aircraft close by or on the ground;
 - 🔊 **300–3400 Hz DSP band-pass filter** — brings out the voice in ATC communications;
 - 🔇 **SNR-based squelch**, not RSSI — the right approach for AM (carrier is always present);
 - 🔄 **Smart scan** with ATC-optimized dwell time and priority channels (TWR/APP);
-- 🖥️ **Clean, dedicated UI** on the ST7565 128×64 display (large frequency font, no visual clutter);
-- 🛠️ **Web tool (Web Serial)** to configure scanlists, back up EEPROM and update firmware.
+- 🖥️ **Clean, dedicated UI** on the ST7565 128×64 display (large frequency font, no visual clutter).
 
 ## 📋 Table of Contents
 
@@ -45,8 +50,7 @@ Turn your **Quansheng UV-K5(8)** into a **dedicated aviation scanner**, focused 
     - [2. Back up the original firmware](#2-back-up-the-original-firmware)
     - [3. Flash with the Web Flasher](#3-flash-with-the-web-flasher)
     - [4. Power on and listen](#4-power-on-and-listen)
-  - [🛠️ Web Tool](#️-web-tool)
-  - [🔨 Building the Firmware](#-building-the-firmware)
+  - [ Building the Firmware](#-building-the-firmware)
     - [Build with Docker (recommended)](#build-with-docker-recommended)
     - [Build natively](#build-natively)
   - [📁 Repository Structure](#-repository-structure)
@@ -94,7 +98,7 @@ Turn your **Quansheng UV-K5(8)** into a **dedicated aviation scanner**, focused 
 Grab the latest binary from the **[Releases](https://github.com/romildodcm/qap/releases)** section (the `...-firmware.packed.bin` file).
 
 ### 2. Back up the original firmware
-Use the **[web tool](#-web-tool)** or a flasher to **save the factory firmware** before any flashing. You will need it to restore the radio.
+Use a flasher to **save the factory firmware** before any flashing. You will need it to restore the radio.
 
 ### 3. Flash with the Web Flasher
 Use the [web flasher](https://egzumer.github.io/uvtools) (Chrome/Edge via Web Serial) with the downloaded `.packed.bin` file.
@@ -104,21 +108,7 @@ Done — the radio boots straight into airband scanner mode.
 
 > ⚠️ Use a **quality data cable**. An interrupted flash may require DFU recovery.
 
-## 🛠️ Web Tool
-
-Configuration and backup run **directly in your browser** — nothing to install:
-
-- **Page:** [`https://qap.romildo.net/`](https://qap.romildo.net/) · (mirror: `https://romildodcm.github.io/qap/`)
-
-| Feature | Description |
-|---------|-------------|
-| **Scan Lists** | `1/2/3` tabs, frequency + name editing, send/read from radio, CSV export/import |
-| **Radio backup** | Full EEPROM dump |
-| **Firmware** | Backup (read) and update (flash via DFU mode) |
-
-> Requires a browser with the **Web Serial API** (Chrome/Edge) and a data cable.
-
-## 🔨 Building the Firmware
+##  Building the Firmware
 
 The C source lives in [`firmware/src/`](./firmware/src/). The build is done with **Docker** (works on macOS Intel/Apple Silicon and Linux).
 
@@ -146,7 +136,6 @@ The flashable binary is produced at `firmware/build/firmware.packed.bin` (flash 
 qap/
 ├── firmware/          # Firmware (C source, Makefile, Dockerfile)
 │   └── src/           #   Source code (BK4819 drivers, UI, scan, AGC…)
-├── tools/             # Web tool (ui_editor.html — Web Serial)
 ├── docs/              # Architecture, UI, Brazilian airband frequencies
 ├── plans/             # Implementation plans (roadmap)
 ├── CHANGELOG.md       # Build history

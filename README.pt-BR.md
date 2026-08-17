@@ -24,20 +24,24 @@
 
 Transforme seu **Quansheng UV-K5(8)** em um **scanner de aviação dedicado**, focado exclusivamente na faixa **118–136 MHz (AM)** — torre (TWR), aproximação (APP), rota (ACC), ATIS, solo (GND) e emergência 121.500 MHz.
 
+> ⚠️ **Somente recepção.** Este firmware nunca transmite. Transmitir em frequências aeronáuticas é **ilegal**.
+
+> 🧪 **Em evolução / experimental.** Este firmware está em desenvolvimento ativo — use **por conta e risco** do usuário. Faça backup do firmware de fábrica antes de gravar.
+
+> 📡 **Por padrão**, o firmware já vem com as frequências de **Foz do Iguaçu (SBFI/IGU)** pré-carregadas no scanner.
+
 - 🎧 **Recepção AM dedicada** em 118.000–136.975 MHz, com passos de **8.33 / 25 kHz**;
 - 📡 **AM AGC avançado** (32 níveis, histerese 3 dB) — áudio limpo de aeronaves próximas ou em solo;
 - 🔊 **Filtro DSP passa-banda 300–3400 Hz** — realça a voz em comunicações ATC;
 - 🔇 **Squelch baseado em SNR**, não em RSSI — correto para AM (portadora sempre presente);
 - 🔄 **Scan inteligente** com dwell otimizado para ATC e canais de prioridade (TWR/APP);
-- 🖥️ **Interface limpa e dedicada** no display ST7565 128×64 (fonte grande de frequência, sem poluição visual);
-- 🛠️ **Ferramenta web (Web Serial)** para configurar scanlists, backup de EEPROM e atualizar firmware.
+- 🖥️ **Interface limpa e dedicada** no display ST7565 128×64 (fonte grande de frequência, sem poluição visual).
 
 ## 📋 Sumário
 
 - [Hardware Alvo](#-hardware-alvo)
 - [Funcionalidades](#-funcionalidades)
 - [Instalação — Flashear o Rádio](#-instalação--flashear-o-rádio)
-- [Ferramenta Web](#-ferramenta-web)
 - [Build do Firmware](#-build-do-firmware)
 - [Estrutura do Repositório](#-estrutura-do-repositório)
 - [Documentação](#-documentação)
@@ -84,7 +88,7 @@ Transforme seu **Quansheng UV-K5(8)** em um **scanner de aviação dedicado**, f
 Faça o download do binário mais recente na seção **[Releases](https://github.com/romildodcm/qap/releases)** (arquivo `...-firmware.packed.bin`).
 
 ### 2. Faça backup do firmware original
-Use a **[ferramenta web](#-ferramenta-web)** ou um flasher para **salvar o firmware de fábrica** antes de qualquer gravação. Você precisará dele para restaurar o rádio.
+Use um flasher para **salvar o firmware de fábrica** antes de qualquer gravação. Você precisará dele para restaurar o rádio.
 
 ### 3. Grave com o Web Flasher
 Use o [web flasher](https://egzumer.github.io/uvtools) (Chrome/Edge via Web Serial) com o arquivo `.packed.bin` baixado.
@@ -94,21 +98,7 @@ Pronto — o rádio inicia direto em modo scanner airband.
 
 > ⚠️ Use um **cabo de dados** de qualidade. Uma gravação interrompida pode exigir recuperação via DFU.
 
-## 🛠️ Ferramenta Web
-
-Configuração e backup rodam **direto no navegador** — sem instalar nada:
-
-- **Página:** [`https://qap.romildo.net/`](https://qap.romildo.net/) · (mirror: `https://romildodcm.github.io/qap/`)
-
-| Recurso | Descrição |
-|---------|-----------|
-| **Scan Lists** | Abas `1/2/3`, edição de frequência + nome, enviar/ler do rádio, exportar/importar CSV |
-| **Backup do rádio** | Dump completo da EEPROM |
-| **Firmware** | Backup (leitura) e atualização (flash via modo DFU) |
-
-> Requer navegador com **Web Serial API** (Chrome/Edge) e cabo de dados.
-
-## 🔨 Build do Firmware
+##  Build do Firmware
 
 O código-fonte C fica em [`firmware/src/`](./firmware/src/). O build é feito com **Docker** (funciona em macOS Intel/Apple Silicon e Linux).
 
@@ -136,7 +126,6 @@ O binário de gravação sai em `firmware/build/firmware.packed.bin` (flash < 64
 qap/
 ├── firmware/          # Firmware (fonte C, Makefile, Dockerfile)
 │   └── src/           #   Código-fonte (drivers BK4819, UI, scan, AGC…)
-├── tools/             # Ferramenta web (ui_editor.html — Web Serial)
 ├── docs/              # Arquitetura, UI, frequências airband BR
 ├── plans/             # Planos de implementação (roadmap)
 ├── CHANGELOG.md       # Histórico de builds

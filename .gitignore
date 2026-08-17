@@ -6,13 +6,16 @@ firmware/obj/
 *.o
 *.d
 
+# EXCEÇÃO: binário de download publicado na página (web/downloads)
+!web/downloads/firmware.packed.bin
+
 # Binários compilados / recursos (utilitários Windows do upstream)
 *.exe
 *.res
 *.obj
 
-# Editor web legado (substituído por ui_editor.html)
-tools/ui_editor.py
+# Ferramenta web / editor (não publicar)
+tools/
 
 # Ferramentas locais de desenvolvimento de UI (não publicar)
 ui/

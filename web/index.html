@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QAP — Quansheng Airband Project</title>
+<meta name="description" content="Firmware RX-only para o Quansheng UV-K5(8) — scanner airband 118-136 MHz AM. Receive-only firmware for the Quansheng UV-K5(8) — 118-136 MHz AM airband scanner.">
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-2: #101a2e;
+    --card: #14213a;
+    --border: #233a5e;
+    --text: #e8eef8;
+    --muted: #9fb0c8;
+    --accent: #f2a900;
+    --accent-2: #00b4d8;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2a4a 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- Hero ---------- */
+  .hero { text-align: center; padding: 48px 0 24px; }
+  .hero h1 { font-size: 2.4rem; letter-spacing: -0.5px; }
+  .hero h1 .dot { color: var(--accent); }
+  .hero .tagline { color: var(--muted); font-size: 1.1rem; margin-top: 6px; }
+  .badges { margin: 18px 0 6px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .badge {
+    font-size: 0.78rem; padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+  }
+  .badge.rx { border-color: #1d5c3a; color: #5fe39a; }
+  .badge.am { border-color: #7c2b22; color: #f08c80; }
+  .callsign { color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
+  .callsign b { color: var(--text); }
+
+  .hero-img { margin: 26px auto 6px; max-width: 640px; }
+  .hero-img img {
+    width: 100%; border-radius: var(--radius);
+    border: 1px solid var(--border); box-shadow: 0 18px 50px rgba(0,0,0,.45);
+  }
+  .hero-img figcaption { color: var(--muted); font-size: 0.82rem; margin-top: 8px; font-style: italic; }
+
+  .warn {
+    display: inline-block; margin-top: 22px; padding: 10px 18px;
+    border: 1px solid #7c2b22; background: rgba(231,76,60,.08); border-radius: var(--radius);
+    color: #f0b0a8; font-size: 0.9rem;
+  }
+  .warn b { color: var(--red); }
+  .warn.experimental { border-color: #7a5c1d; background: rgba(242,169,0,.07); color: #e8d5a0; }
+  .warn.experimental b { color: var(--accent); }
+  .warn.default-freq { border-color: #1d5c8a; background: rgba(0,180,216,.07); color: #a8d8e8; }
+  .warn.default-freq b { color: var(--accent-2); }
+
+  /* ---------- Download ---------- */
+  .download { text-align: center; margin: 30px 0; }
+  .btn {
+    display: inline-block; padding: 14px 32px; border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), #ffc93c); color: #1a1405;
+    font-weight: 700; font-size: 1.05rem; transition: transform .12s, box-shadow .12s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(242,169,0,.35); text-decoration: none; }
+  .btn .sub { display: block; font-size: .75rem; font-weight: 500; opacity: .75; margin-top: 2px; }
+
+  /* ---------- Sections ---------- */
+  section { margin: 44px 0; }
+  h2 {
+    font-size: 1.45rem; margin-bottom: 16px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 10px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
+  }
+  ul.list { list-style: none; }
+  ul.list li { padding: 6px 0 6px 28px; position: relative; }
+  ul.list li::before {
+    content: "✓"; position: absolute; left: 4px; color: var(--green); font-weight: 700;
+  }
+  ul.list.no li::before { content: "✗"; color: var(--red); }
+  code {
+    background: var(--bg-2); border: 1px solid var(--border); padding: 1px 6px;
+    border-radius: 5px; font-size: 0.88em;
+  }
+  pre {
+    background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; overflow-x: auto; margin: 10px 0; font-size: .85rem;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .steps { counter-reset: step; list-style: none; }
+  .steps li { counter-increment: step; padding: 10px 0 10px 46px; position: relative; }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 10px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--bg-2); border: 1px solid var(--accent); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem;
+  }
+
+  footer { text-align: center; color: var(--muted); font-size: .82rem; padding: 34px 0 40px; }
+  footer .legal { margin-top: 8px; color: #7d8aa3; }
+  .lang-switch { text-align: center; margin-top: 6px; }
+  .lang-switch button {
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 16px; border-radius: 999px; cursor: pointer; font-size: .82rem;
+  }
+  .lang-switch button.active { border-color: var(--accent); color: var(--accent); }
+
+  /* Botão de idioma fixo no canto superior direito */
+  .lang-btn {
+    position: fixed; top: 14px; right: 14px; z-index: 50;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: .85rem;
+    transition: border-color .15s, transform .1s;
+    box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  }
+  .lang-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .lang-btn .flag { font-size: 1.1rem; }
+  .lang-btn .label { font-weight: 600; }
+  .lang-btn[data-active="1"] { border-color: var(--accent); color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.4rem; }
+    .container { padding: 0 14px; }
+    .lang-btn { top: 10px; right: 10px; padding: 6px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="lang-btn" id="langBtn" type="button" aria-label="Mudar idioma / Change language" title="PT-BR / EN">
+  <span class="flag">🇧🇷</span>
+  <span class="label" data-lang="pt">EN</span>
+  <span class="label" data-lang="en">PT</span>
+</button>
+
+<header class="hero container">
+  <h1><b>Q</b>uansheng <b>A</b>irband <b>P</b>roject <span class="dot">(QAP)</span></h1>
+  <p class="tagline" data-lang="pt">Scanner RX-only de aviação para o Quansheng UV-K5</p>
+  <p class="tagline" data-lang="en">RX-only aviation scanner for the Quansheng UV-K5</p>
+
+  <div class="badges">
+    <span class="badge">Apache 2.0</span>
+    <span class="badge rx">RX-only · sem TX</span>
+    <span class="badge">118–136 MHz</span>
+    <span class="badge am">AM</span>
+    <span class="badge">Build 2026-08-16</span>
+  </div>
+
+  <p class="callsign">Callsign: <b>PU5XRM</b></p>
+
+  <figure class="hero-img">
+    <img src="qap.jpg" alt="QAP firmware UI — booting, scanning, hold">
+    <figcaption data-lang="pt">Da esquerda para a direita: ligando, escaneando e hold.</figcaption>
+    <figcaption data-lang="en">From left to right: booting, scanning and hold.</figcaption>
+  </figure>
+
+  <span class="warn">
+    <span data-lang="pt"><b>Somente recepção.</b> Este firmware nunca transmite. Transmitir em frequências aeronáuticas é ilegal.</span>
+    <span data-lang="en"><b>Receive-only.</b> This firmware never transmits. Transmitting on aviation frequencies is illegal.</span>
+  </span>
+
+  <span class="warn experimental">
+    <span data-lang="pt"><b>Em evolução / experimental.</b> Este firmware está em desenvolvimento ativo — use <b>por conta e risco</b> do usuário. Faça backup do firmware de fábrica antes de gravar.</span>
+    <span data-lang="en"><b>Evolving / experimental.</b> This firmware is under active development — use at <b>your own risk</b>. Back up the factory firmware before flashing.</span>
+  </span>
+
+  <span class="warn default-freq">
+    <span data-lang="pt"><b>Por padrão</b>, o firmware já vem com as frequências de <b>Foz do Iguaçu (SBFI/IGU)</b> pré-carregadas no scanner.</span>
+    <span data-lang="en"><b>By default</b>, the firmware ships with <b>Foz do Iguaçu (SBFI/IGU)</b> frequencies pre-loaded in the scanner.</span>
+  </span>
+
+  <div class="download">
+    <a class="btn" href="downloads/firmware.packed.bin" download>
+      <span data-lang="pt">Baixar firmware</span>
+      <span data-lang="en">Download firmware</span>
+      <span class="sub">firmware.packed.bin · flash &lt; 64 KB</span>
+    </a>
+  </div>
+</header>
+
+<main class="container">
+
+  <section>
+    <h2><span data-lang="pt">Destaques</span><span data-lang="en">Highlights</span></h2>
+    <ul class="list">
+      <li data-lang="pt">Recepção AM dedicada em 118.000–136.975 MHz, passos de 8.33 / 25 kHz</li>
+      <li data-lang="en">Dedicated AM reception on 118.000–136.975 MHz, 8.33 / 25 kHz steps</li>
+      <li data-lang="pt">AM AGC avançado (32 níveis, histerese 3 dB) — áudio limpo de aeronaves próximas</li>
+      <li data-lang="en">Advanced AM AGC (32 levels, 3 dB hysteresis) — clean audio from nearby aircraft</li>
+      <li data-lang="pt">Filtro DSP passa-banda 300–3400 Hz — realça a voz em comunicações ATC</li>
+      <li data-lang="en">300–3400 Hz DSP band-pass filter — brings out the voice in ATC communications</li>
+      <li data-lang="pt">Squelch baseado em SNR, não em RSSI — correto para AM (portadora sempre presente)</li>
+      <li data-lang="en">SNR-based squelch, not RSSI — the right approach for AM (carrier always present)</li>
+      <li data-lang="pt">Scan inteligente com dwell otimizado para ATC e canais de prioridade (TWR/APP)</li>
+      <li data-lang="en">Smart scan with ATC-optimized dwell time and priority channels (TWR/APP)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span data-lang="pt">Hardware Alvo</span><span data-lang="en">Target Hardware</span></h2>
+    <div class="card">
+      <table>
+        <tr><th data-lang="pt">Item</th><th data-lang="en">Item</th><th data-lang="pt">Especificação</th><th data-lang="en">Specification</th></tr>
+        <tr><td data-lang="pt">Rádio</td><td data-lang="en">Radio</td><td colspan="2">Quansheng UV-K5(8) (e variantes compatíveis)</td></tr>
+        <tr><td data-lang="pt">Chip RF</td><td data-lang="en">RF chip</td><td colspan="2">BK4819 (recepção 18 MHz – 1.3 GHz)</td></tr>
+        <tr><td data-lang="pt">MCU</td><td data-lang="en">MCU</td><td colspan="2">DP32G030 (ARM Cortex-M0, 64 KB flash)</td></tr>
+        <tr><td data-lang="pt">Display</td><td data-lang="en">Display</td><td colspan="2">ST7565 128×64</td></tr>
+        <tr><td data-lang="pt">Faixa</td><td data-lang="en">Band</td><td colspan="2">118.000 – 136.975 MHz</td></tr>
+        <tr><td data-lang="pt">Modulação</td><td data-lang="en">Modulation</td><td colspan="2">AM</td></tr>
+        <tr><td data-lang="pt">Passo</td><td data-lang="en">Step</td><td colspan="2">8.33 kHz / 25 kHz</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span data-lang="pt">Funcionalidades</span><span data-lang="en">Features</span></h2>
+    <div class="card">
+      <h3 style="margin-bottom:8px" data-lang="pt">Incluídas</h3>
+      <h3 style="margin-bottom:8px" data-lang="en">Included</h3>
+      <ul class="list">
+        <li data-lang="pt">Recepção AM completa na faixa aeronáutica</li>
+        <li data-lang="en">Full AM reception on the aviation band</li>
+        <li data-lang="pt">Scan rápido com dwell otimizado para ATC</li>
+        <li data-lang="en">Fast scan with ATC-optimized dwell time</li>
+        <li data-lang="pt">AM AGC avançado + filtro DSP 300–3400 Hz</li>
+        <li data-lang="en">Advanced AM AGC + 300–3400 Hz DSP filter</li>
+        <li data-lang="pt">Squelch por SNR, S-meter/RSSI, canais de prioridade</li>
+        <li data-lang="en">SNR squelch, S-meter/RSSI, priority channels</li>
+        <li data-lang="pt">Scan lists (1/2/3/ALL) configuráveis</li>
+        <li data-lang="en">Configurable scan lists (1/2/3/ALL)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:8px" data-lang="pt">Removidas (para liberar flash)</h3>
+      <h3 style="margin-bottom:8px" data-lang="en">Removed (to free up flash)</h3>
+      <ul class="list no">
+        <li data-lang="pt">Transmissão (TX) — completamente desabilitada no hardware</li>
+        <li data-lang="en">Transmission (TX) — completely disabled in hardware</li>
+        <li data-lang="pt">FM broadcast, NOAA, VOICE/Beep</li>
+        <li data-lang="en">FM broadcast, NOAA, VOICE/Beep</li>
+        <li data-lang="pt">DTMF calling/paging, AIRCOPY (clone RF)</li>
+        <li data-lang="en">DTMF calling/paging, AIRCOPY (RF clone)</li>
+        <li data-lang="pt">VOX, Alarm e outras funções não relacionadas à aviação</li>
+        <li data-lang="en">VOX, Alarm and other non-aviation features</li>
+      </ul>
+      <p style="color:var(--muted);margin-top:10px;font-size:.88rem" data-lang="pt">Libera ~23–30 KB de flash para os algoritmos de recepção AM.</p>
+      <p style="color:var(--muted);margin-top:10px;font-size:.88rem" data-lang="en">Frees ~23–30 KB of flash for the AM reception algorithms.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span data-lang="pt">Instalação — Flashear o Rádio</span><span data-lang="en">Installation — Flashing the Radio</span></h2>
+    <div class="card">
+      <ol class="steps">
+        <li data-lang="pt"><b>Baixe o firmware</b> na seção <a href="https://github.com/romildodcm/qap/releases">Releases</a> (arquivo <code>...-firmware.packed.bin</code>).</li>
+        <li data-lang="en"><b>Download the firmware</b> from the <a href="https://github.com/romildodcm/qap/releases">Releases</a> section (the <code>...-firmware.packed.bin</code> file).</li>
+        <li data-lang="pt"><b>Faça backup</b> do firmware de fábrica antes de qualquer gravação.</li>
+        <li data-lang="en"><b>Back up</b> the factory firmware before any flashing.</li>
+        <li data-lang="pt"><b>Grave com o Web Flasher</b> — <a href="https://egzumer.github.io/uvtools">egzumer.github.io/uvtools</a> (Chrome/Edge via Web Serial).</li>
+        <li data-lang="en"><b>Flash with the Web Flasher</b> — <a href="https://egzumer.github.io/uvtools">egzumer.github.io/uvtools</a> (Chrome/Edge via Web Serial).</li>
+        <li data-lang="pt"><b>Ligue e escute</b> — o rádio inicia direto no scanner airband.</li>
+        <li data-lang="en"><b>Power on and listen</b> — the radio boots straight into airband scanner mode.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <h2><span data-lang="pt">Documentação</span><span data-lang="en">Documentation</span></h2>
+    <div class="card">
+      <ul class="list">
+        <li><a href="https://github.com/romildodcm/qap/blob/main/docs/arquitetura.md" data-lang="pt">Arquitetura e decisões técnicas</a><a href="https://github.com/romildodcm/qap/blob/main/docs/arquitetura.md" data-lang="en">Architecture and technical decisions</a></li>
+        <li><a href="https://github.com/romildodcm/qap/blob/main/docs/ui-design.md" data-lang="pt">Especificação da interface (ST7565 128×64)</a><a href="https://github.com/romildodcm/qap/blob/main/docs/ui-design.md" data-lang="en">UI specification (ST7565 128×64)</a></li>
+        <li><a href="https://github.com/romildodcm/qap/blob/main/docs/frequencias-airband-brasil.md" data-lang="pt">Frequências ATC Brasil (TWR/APP/ACC)</a><a href="https://github.com/romildodcm/qap/blob/main/docs/frequencias-airband-brasil.md" data-lang="en">Brazilian ATC frequencies (TWR/APP/ACC)</a></li>
+        <li><a href="https://github.com/romildodcm/qap/blob/main/CHANGELOG.md" data-lang="pt">Changelog (histórico de builds)</a><a href="https://github.com/romildodcm/qap/blob/main/CHANGELOG.md" data-lang="en">Changelog (build history)</a></li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="container">
+  <p><b>QAP — Quansheng Airband Project</b> · PU5XRM</p>
+  <p class="legal" data-lang="pt">Este projeto é somente para escuta. Não transmita em frequências aeronáuticas — é ilegal e perigoso.</p>
+  <p class="legal" data-lang="en">This project is for listening only. Do not transmit on aviation frequencies — it is illegal and dangerous.</p>
+  <p style="margin-top:12px">Apache License 2.0 · <a href="https://github.com/romildodcm/qap">GitHub</a></p>
+</footer>
+
+<script>
+(function () {
+  var SAVED = 'qap_lang';
+  var btn = document.getElementById('langBtn');
+
+  // Idioma: navegador (pt* -> pt, senão en), sobrescrito por escolha salva
+  var lang = (navigator.language || 'en').toLowerCase();
+  var current = localStorage.getItem(SAVED) || (lang.indexOf('pt') === 0 ? 'pt' : 'en');
+  if (current !== 'pt') current = 'en';
+
+  applyLang(current);
+
+  btn.addEventListener('click', function () {
+    var next = (current === 'pt') ? 'en' : 'pt';
+    localStorage.setItem(SAVED, next);
+    applyLang(next);
+  });
+
+  function applyLang(l) {
+    current = l;
+    document.documentElement.lang = l;
+    var els = document.querySelectorAll('[data-lang]');
+    for (var i = 0; i < els.length; i++) {
+      els[i].style.display = els[i].getAttribute('data-lang') === l ? '' : 'none';
+    }
+    // Bandeira e estado do botão
+    var flag = btn.querySelector('.flag');
+    var label = btn.querySelector('.label');
+    flag.textContent = (l === 'pt') ? '🇧🇷' : '🇺🇸';
+    label.textContent = (l === 'pt') ? 'EN' : 'PT';
+    btn.setAttribute('data-active', '1');
+  }
+})();
+</script>
+</body>
+</html>
