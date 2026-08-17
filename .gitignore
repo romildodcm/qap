@@ -18,7 +18,7 @@ firmware/obj/
 tools/
 
 # Ferramentas locais de desenvolvimento de UI (não publicar)
-ui/
+/ui/
 
 # Dependências externas (submódulos clonados)
 firmware/src/external/printf/

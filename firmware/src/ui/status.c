@@ -1,0 +1,182 @@
+/* Copyright 2023 Dual Tachyon
+ * https://github.com/DualTachyon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *     Unless required by applicable law or agreed to in writing, software
+ *     distributed under the License is distributed on an "AS IS" BASIS,
+ *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *     See the License for the specific language governing permissions and
+ *     limitations under the License.
+ */
+
+#include <string.h>
+
+#include "app/chFrScanner.h"
+#include "am_fix.h"
+#ifdef ENABLE_FMRADIO
+    #include "app/fm.h"
+#endif
+#include "app/scanner.h"
+#include "bitmaps.h"
+#include "driver/keyboard.h"
+#include "driver/st7565.h"
+#include "external/printf/printf.h"
+#include "functions.h"
+#include "helper/battery.h"
+#include "misc.h"
+#include "settings.h"
+#include "ui/battery.h"
+#include "ui/graphics.h"
+#include "ui/ui.h"
+#include "ui/status.h"
+
+void UI_DisplayStatus()
+{
+    char str[10] = "";
+
+    gUpdateStatus = false;
+    memset(gFrameBuffer[0], 0, sizeof(gFrameBuffer[0]));
+
+    uint8_t     *line = gFrameBuffer[0];
+    unsigned int x    = 0;
+
+    // Airband scanner: simplified status line
+    if (gScanStateDir != SCAN_OFF)
+    {
+        sprintf(str, "AGC%+ddB", AM_fix_get_gain_diff());
+        UI_PrintStringSmallBufferNormal(str, line + x);
+    }
+    else
+    {
+        // ************** original radio status **************
+
+        if (gCurrentFunction == FUNCTION_POWER_SAVE) {
+            memcpy(line + x, gFontPowerSave, sizeof(gFontPowerSave));
+        }
+        x += 8;
+        unsigned int x1 = x;
+
+        if (gScanStateDir != SCAN_OFF || SCANNER_IsScanning()) {
+            if (IS_MR_CHANNEL(gNextMrChannel) && !SCANNER_IsScanning()) { // channel mode
+                switch(gEeprom.SCAN_LIST_DEFAULT) {
+                    case 0:
+                        memcpy(line + 0, BITMAP_ScanList0, sizeof(BITMAP_ScanList0));
+                        break;
+                    case 1:
+                        memcpy(line + 0, BITMAP_ScanList1, sizeof(BITMAP_ScanList1));
+                        break;
+                    case 2:
+                        memcpy(line + 0, BITMAP_ScanList2, sizeof(BITMAP_ScanList2));
+                        break;
+                    case 3:
+                        memcpy(line + 0, BITMAP_ScanList3, sizeof(BITMAP_ScanList3));
+                        break;
+                    case 4:
+                        memcpy(line + 0, BITMAP_ScanList123, sizeof(BITMAP_ScanList123));
+                        break;
+                    case 5:
+                        memcpy(line + 0, BITMAP_ScanListAll, sizeof(BITMAP_ScanListAll));
+                        break;
+                }
+            }
+            else {  // frequency mode
+                memcpy(line + x + 1, gFontS, sizeof(gFontS));
+            }
+            x1 = x + 10;
+        }
+        x += 10;  // font character width
+
+        if(!SCANNER_IsScanning()) {
+            if(gCurrentFunction == FUNCTION_TRANSMIT && gSetting_set_tmr == true)
+            {
+                // timer disabled on airband scanner
+            }
+            else if(FUNCTION_IsRx() && gSetting_set_tmr == true)
+            {
+                // timer disabled on airband scanner
+            }
+            else
+            {
+                uint8_t dw = (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) + (gEeprom.CROSS_BAND_RX_TX != CROSS_BAND_OFF) * 2;
+                if(dw == 1 || dw == 3) { // DWR - dual watch + respond
+                    if(gDualWatchActive)
+                        memcpy(line + x + (dw==1?0:2), gFontDWR, sizeof(gFontDWR) - (dw==1?0:5));
+                    else
+                        memcpy(line + x + 3, gFontHold, sizeof(gFontHold));
+                }
+                else if(dw == 2) { // XB - crossband
+                    memcpy(line + x + 2, gFontXB, sizeof(gFontXB));
+                }
+                else
+                {
+                    memcpy(line + x + 2, gFontMO, sizeof(gFontMO));
+                }
+            }
+        }
+        x += sizeof(gFontDWR) + 3;
+
+        // PTT indicator
+        if (gSetting_set_ptt_session) {
+            memcpy(line + x, gFontPttOnePush, sizeof(gFontPttOnePush));
+            x1 = x + sizeof(gFontPttOnePush) + 1;
+        }
+        else
+        {
+            memcpy(line + x, gFontPttClassic, sizeof(gFontPttClassic));
+            x1 = x + sizeof(gFontPttClassic) + 1;
+        }
+        x += sizeof(gFontPttClassic) + 3;
+
+        x = MAX(x1, 70u);
+
+        // KEY-LOCK indicator
+        if (gEeprom.KEY_LOCK) {
+            memcpy(line + x + 1, gFontKeyLock, sizeof(gFontKeyLock));
+        }
+        else if (gWasFKeyPressed) {
+            memcpy(line + x + 1, gFontF, sizeof(gFontF));
+        }
+        else if (gBackLight)
+        {
+            memcpy(line + x + 1, gFontLight, sizeof(gFontLight));
+        }
+        else if (gChargingWithTypeC)
+        {
+            memcpy(line + x + 1, BITMAP_USB_C, sizeof(BITMAP_USB_C));
+        }
+    }
+
+    // Battery (shared)
+    unsigned int x2 = LCD_WIDTH - sizeof(BITMAP_BatteryLevel1) - 0;
+
+    UI_DrawBattery(line + x2, gBatteryDisplayLevel, gLowBatteryBlink);
+
+    str[0] = '\0';
+    switch (gSetting_battery_text) {
+        default:
+        case 0:
+            break;
+
+        case 1: {   // voltage
+            const uint16_t voltage = (gBatteryVoltageAverage <= 999) ? gBatteryVoltageAverage : 999; // limit to 9.99V
+            sprintf(str, "%u.%02u", voltage / 100, voltage % 100);
+            break;
+        }
+
+        case 2:     // percentage
+            sprintf(str, "%u%%", BATTERY_VoltsToPercent(gBatteryVoltageAverage));
+            break;
+    }
+
+    x2 -= (7 * strlen(str));
+    UI_PrintStringSmallBufferNormal(str, line + x2);
+
+    // **************
+
+    ST7565_BlitStatusLine();
+}
