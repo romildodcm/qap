@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UV-K5 UI Pixel Editor — PU5XRM Airband</title>
+<style>
+  :root {
+    --bg: #1e1e1e;
+    --panel: #252525;
+    --panel2: #2e2e2e;
+    --border: #3a3a3a;
+    --text: #e1e1e1;
+    --dim: #999;
+    --accent: #ffa500;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; padding: 10px 16px;
+    background: #0f0f0f; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 15px; font-weight: 700; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  .spacer { flex: 1; }
+  .controls { display: flex; align-items: center; gap: 8px; }
+  .controls label { font-size: 11px; color: var(--dim); }
+  input[type=number], input[type=text] {
+    width: 52px; padding: 4px 6px; background: #222; border: 1px solid var(--border);
+    color: var(--text); border-radius: 4px; font-family: Menlo, monospace; font-size: 12px; text-align: center;
+  }
+  input[type=text] { width: 90px; text-align: left; }
+  button {
+    padding: 6px 12px; background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s;
+  }
+  button:hover { background: #3d3d3d; }
+  button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  button.danger { background: #C0392B; border-color: #C0392B; color: #fff; }
+  main { flex: 1; display: flex; min-height: 0; }
+  #canvas-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: #1a1a1a; padding: 20px; overflow: auto; position: relative;
+  }
+  canvas { image-rendering: pixelated; cursor: crosshair; box-shadow: 0 4px 30px rgba(0,0,0,.6); }
+  #pos-info {
+    position: absolute; bottom: 10px; left: 16px; font-family: Menlo, monospace;
+    font-size: 12px; color: var(--dim); background: rgba(0,0,0,.6); padding: 4px 8px; border-radius: 4px;
+  }
+  aside {
+    width: 380px; background: #151515; border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 14px; gap: 10px; overflow-y: auto;
+  }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
+  textarea {
+    width: 100%; background: #222; color: #fff; border: 1px solid var(--border); border-radius: 4px;
+    font-family: Menlo, monospace; font-size: 11px; padding: 8px; resize: vertical;
+  }
+  textarea#input { height: 110px; }
+  textarea#output { height: 160px; }
+  .row { display: flex; gap: 6px; }
+  .row button { flex: 1; }
+  .preview-box {
+    background: var(--accent); border-radius: 4px; padding: 8px 10px; display: flex; align-items: center;
+    gap: 10px; border: 1px solid #000;
+  }
+  .preview-box canvas { box-shadow: none; border: 1px solid rgba(0,0,0,.3); }
+  .theme-row { display: flex; gap: 6px; align-items: center; }
+  .theme-btn { width: 34px; height: 28px; font-weight: 800; border: 2px solid transparent; }
+  .theme-btn.active { border-color: #fff; }
+  .hint { font-size: 11px; color: var(--dim); line-height: 1.5; }
+  kbd {
+    background: #333; border: 1px solid #555; border-bottom-width: 2px; border-radius: 3px;
+    padding: 1px 5px; font-family: Menlo, monospace; font-size: 10px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>UV-K5 UI Pixel Editor</h1>
+    <div class="sub">Display 128×64 · ST7565 · PU5XRM Airband</div>
+  </div>
+  <div class="controls">
+    <label>Zoom</label><input type="number" id="zoom" value="8" min="2" max="40">
+    <label>Largura</label><input type="number" id="work-w" value="128" min="1" max="128">
+    <label>Altura</label><input type="number" id="work-h" value="64" min="1" max="64">
+    <button id="btn-lgrid" title="Mostrar grid de 8px">L-GRID</button>
+    <button id="btn-inv" title="Inverter cores">INV</button>
+    <button class="danger" id="btn-clear">LIMPAR</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="controls theme-row">
+    <button class="theme-btn active" id="th-O" style="background:#FFA500" title="Tema Orange">O</button>
+    <button class="theme-btn" id="th-W" style="background:#E0E0E0" title="Tema White">W</button>
+    <button class="theme-btn" id="th-B" style="background:#45b5ff" title="Tema Blue">B</button>
+  </div>
+</header>
+
+<main>
+  <div id="canvas-wrap">
+    <canvas id="canvas" width="1024" height="512"></canvas>
+    <div id="pos-info">POS: --,-- · DRAWN: <span id="drawn-count">0</span> px</div>
+  </div>
+
+  <aside>
+    <h2>Cole o código C (hex/binário)</h2>
+    <textarea id="input" placeholder="Cole aqui um array de bitmap do firmware, ex:&#10;{ 0x00, 0x00, 0x7E, 0x81, 0x81, 0x7E, 0x00, 0x00 }&#10;&#10;ou use os botões abaixo para pegar do firmware"></textarea>
+    <div class="row">
+      <button id="btn-parse" class="active">DESENHAR</button>
+      <button id="btn-load-demo">EXEMPLO</button>
+    </div>
+
+    <h2>Variável (nome)</h2>
+    <input type="text" id="var-name" value="indicator_x" placeholder="nome da variável/ícone">
+
+    <h2>Gerar código C</h2>
+    <div class="row">
+      <button id="btn-hex">HEX</button>
+      <button id="btn-bin">BINARY</button>
+      <button id="btn-status">STATUS</button>
+    </div>
+    <textarea id="output" placeholder="O código C gerado aparece aqui..."></textarea>
+    <div class="row">
+      <button id="btn-copy">COPIAR CÓDIGO</button>
+    </div>
+
+    <h2>Preview</h2>
+    <div class="preview-box" id="preview-box">
+      <canvas id="preview" width="128" height="64" style="width:256px;height:128px;background:#0a0a0a"></canvas>
+      <div style="font-size:10px;color:#000;line-height:1.4">
+        <b>Preview 2×</b><br>
+        mostra como o<br>display ficará
+      </div>
+    </div>
+
+    <h2>Atalhos</h2>
+    <div class="hint">
+      <kbd>Clique</kbd> desenha · <kbd>Botão direito</kbd> apaga · <kbd>Shift+clique</kbd> linha ·
+      <kbd>Ctrl/Cmd+Z</kbd> desfaz · <kbd>O/W/B</kbd> tema · <kbd>I</kbd> inverter · <kbd>C</kbd> limpar
+    </div>
+  </aside>
+</main>
+
+<script>
+(() => {
+  // ===== Estado =====
+  const WIDTH = 128, HEIGHT = 64;
+  let pixels = Array.from({length: WIDTH}, () => new Uint8Array(HEIGHT));
+  let history = [];
+  let work_w = 128, work_h = 64;
+  let theme = 'O';
+  let inverted = false;
+  let showLineGrid = false;
+  let scale = 8;
+  let lineStart = null;
+  let drawing = false;
+  let drawnCount = 0;
+
+  const THEMES = {
+    O: { bg: '#FFA500', px: '#0A0A0A', inv_bg: '#231600' },
+    W: { bg: '#E0E0E0', px: '#0A0A0A', inv_bg: '#232323' },
+    B: { bg: '#45b5ff', px: '#0A0A0A', inv_bg: '#001e34' }
+  };
+
+  // ===== Mini-fonte 5x7 (proporção da fonte do UV-K5) =====
+  // cada char = 7 linhas de 5 bits (bit 4 = esquerda)
+  const FONT = {
+    ' ': ['00000','00000','00000','00000','00000','00000','00000'],
+    'A': ['01110','10001','10001','11111','10001','10001','10001'],
+    'B': ['11110','10001','10001','11110','10001','10001','11110'],
+    'C': ['01111','10000','10000','10000','10000','10000','01111'],
+    'D': ['11110','10001','10001','10001','10001','10001','11110'],
+    'E': ['11111','10000','10000','11110','10000','10000','11111'],
+    'F': ['11111','10000','10000','11110','10000','10000','10000'],
+    'G': ['01111','10000','10000','10111','10001','10001','01111'],
+    'H': ['10001','10001','10001','11111','10001','10001','10001'],
+    'I': ['01110','00100','00100','00100','00100','00100','01110'],
+    'J': ['00111','00010','00010','00010','10010','10010','01100'],
+    'K': ['10001','10010','10100','11000','10100','10010','10001'],
+    'L': ['10000','10000','10000','10000','10000','10000','11111'],
+    'M': ['10001','11011','10101','10101','10001','10001','10001'],
+    'N': ['10001','10001','11001','10101','10011','10001','10001'],
+    'O': ['01110','10001','10001','10001','10001','10001','01110'],
+    'P': ['11110','10001','10001','11110','10000','10000','10000'],
+    'Q': ['01110','10001','10001','10001','10101','10010','01101'],
+    'R': ['11110','10001','10001','11110','10100','10010','10001'],
+    'S': ['01111','10000','10000','01110','00001','00001','11110'],
+    'T': ['11111','00100','00100','00100','00100','00100','00100'],
+    'U': ['10001','10001','10001','10001','10001','10001','01110'],
+    'V': ['10001','10001','10001','10001','10001','01010','00100'],
+    'W': ['10001','10001','10001','10001','10101','11011','10001'],
+    'X': ['10001','10001','01010','00100','01010','10001','10001'],
+    'Y': ['10001','10001','01010','00100','00100','00100','00100'],
+    'Z': ['11111','00001','00010','00100','01000','10000','11111'],
+    '0': ['01110','10001','10011','10101','11001','10001','01110'],
+    '1': ['00100','01100','00100','00100','00100','00100','01110'],
+    '2': ['01110','10001','00001','00010','00100','01000','11111'],
+    '3': ['11110','00001','00001','01110','00001','00001','11110'],
+    '4': ['00010','00110','01010','10010','11111','00010','00010'],
+    '5': ['11111','10000','10000','11110','00001','00001','11110'],
+    '6': ['01110','10000','10000','11110','10001','10001','01110'],
+    '7': ['11111','00001','00010','00100','01000','01000','01000'],
+    '8': ['01110','10001','10001','01110','10001','10001','01110'],
+    '9': ['01110','10001','10001','01111','00001','00001','01110'],
+    '.': ['00000','00000','00000','00000','00000','01100','01100'],
+    '-': ['00000','00000','00000','11111','00000','00000','00000'],
+    '+': ['00000','00100','00100','11111','00100','00100','00000'],
+    ':': ['00000','01100','01100','00000','01100','01100','00000'],
+    '%': ['11001','11010','00010','00100','01000','01011','10011'],
+    '>': ['00000','01000','00100','00010','00100','01000','00000'],
+    '\u25b6': ['01000','01100','01110','01111','01110','01100','01000'],
+    'd': ['00001','00001','01111','10001','10001','10001','01111'],
+    'b': ['10000','10000','11110','10001','10001','10001','11110'],
+    'M': ['10001','11011','10101','10101','10001','10001','10001'],
+  };
+
+  function putPx(gx, gy, on) {
+    if (gx < 0 || gx >= WIDTH || gy < 0 || gy >= HEIGHT) return;
+    pixels[gx][gy] = on;
+  }
+
+  // desenha texto nas coordenadas absolutas do display
+  function drawText(x, y, text, scale_, on) {
+    let cx = x;
+    for (const ch of text.toUpperCase()) {
+      const glyph = FONT[ch] || FONT[' '];
+      if (ch === ' ') { cx += 6 * scale_; continue; }
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (glyph[r][c] === '1') {
+            for (let dy = 0; dy < scale_; dy++)
+              for (let dx = 0; dx < scale_; dx++)
+                putPx(cx + c * scale_ + dx, y + r * scale_ + dy, on);
+          }
+        }
+      }
+      cx += 6 * scale_;
+    }
+  }
+
+  // preenche um retângulo nas coordenadas absolutas do display
+  function fillRect(x, y, w, h, on) {
+    for (let j = 0; j < h; j++)
+      for (let i = 0; i < w; i++)
+        putPx(x + i, y + j, on);
+  }
+
+  // desenha a barra do S-meter (blocos de 6px de largura)
+  function drawSMeter(x, y, blocks) {
+    const BAR_W = 6, BAR_H = 6;
+    for (let i = 0; i < 12; i++) {
+      if (i < blocks) fillRect(x + i * (BAR_W + 1), y, BAR_W, BAR_H, 1);
+    }
+  }
+
+  // desenha o ícone de bateria (contorno + nível interno)
+  function drawBattery(x, y, pct) {
+    fillRect(x, y, 6, 1, 1);        // topo
+    fillRect(x, y + 6, 6, 1, 1);    // base
+    fillRect(x, y, 1, 7, 1);        // lateral esquerda
+    fillRect(x + 5, y, 1, 7, 1);    // lateral direita
+    fillRect(x + 6, y + 2, 1, 3, 1); // terminal
+    const cells = Math.min(4, Math.max(0, Math.round(pct / 25)));
+    for (let i = 0; i < cells; i++) fillRect(x + 1 + i, y + 1, 1, 5, 1);
+  }
+
+  // ===== Elementos =====
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const preview = document.getElementById('preview');
+  const pctx = preview.getContext('2d');
+  const inputEl = document.getElementById('input');
+  const outputEl = document.getElementById('output');
+  const varName = document.getElementById('var-name');
+  const posInfo = document.getElementById('pos-info');
+  const drawnEl = document.getElementById('drawn-count');
+  const zoomEl = document.getElementById('zoom');
+  const workWEl = document.getElementById('work-w');
+  const workHEl = document.getElementById('work-h');
+  const previewBox = document.getElementById('preview-box');
+
+  // ===== Grid / tema =====
+  function curTheme() {
+    const t = THEMES[theme];
+    return inverted ? { bg: t.px, px: t.bg, inv_bg: t.bg } : t;
+  }
+
+  // ===== Offset (centrar a área de trabalho) =====
+  function offsets() {
+    const ox = Math.floor((WIDTH - work_w) / 2);
+    const oy = Math.floor((HEIGHT - work_h) / 2);
+    return [ox, oy];
+  }
+
+  // ===== Redraw =====
+  function redraw() {
+    const t = curTheme();
+    const cw = canvas.width, ch = canvas.height;
+    ctx.fillStyle = t.inv_bg;
+    ctx.fillRect(0, 0, cw, ch);
+
+    // grid
+    const [ox, oy] = offsets();
+    ctx.strokeStyle = '#00000022';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= work_w; x++) {
+      ctx.beginPath();
+      ctx.moveTo((x + ox) * scale, oy * scale);
+      ctx.lineTo((x + ox) * scale, (oy + work_h) * scale);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= work_h; y++) {
+      ctx.beginPath();
+      ctx.moveTo(ox * scale, (y + oy) * scale);
+      ctx.lineTo((ox + work_w) * scale, (y + oy) * scale);
+      ctx.stroke();
+    }
+
+    // line grid a cada 8px
+    if (showLineGrid) {
+      ctx.strokeStyle = '#00000066';
+      ctx.lineWidth = 2;
+      for (let y = 0; y <= work_h; y += 8) {
+        ctx.beginPath();
+        ctx.moveTo(ox * scale, (y + oy) * scale);
+        ctx.lineTo((ox + work_w) * scale, (y + oy) * scale);
+        ctx.stroke();
+      }
+      for (let x = 0; x <= work_w; x += 8) {
+        ctx.beginPath();
+        ctx.moveTo((x + ox) * scale, oy * scale);
+        ctx.lineTo((x + ox) * scale, (oy + work_h) * scale);
+        ctx.stroke();
+      }
+    }
+
+    // pixels
+    for (let x = 0; x < WIDTH; x++) {
+      for (let y = 0; y < HEIGHT; y++) {
+        if (pixels[x][y]) {
+          ctx.fillStyle = t.px;
+          ctx.fillRect((x + ox) * scale, (y + oy) * scale, scale, scale);
+        }
+      }
+    }
+    updateCount();
+  }
+
+  function updateCount() {
+    let n = 0;
+    for (let x = 0; x < WIDTH; x++) for (let y = 0; y < HEIGHT; y++) if (pixels[x][y]) n++;
+    drawnCount = n;
+    drawnEl.textContent = n;
+  }
+
+  // ===== Preview =====
+  function renderPreview() {
+    const t = curTheme();
+    // display real: fundo na cor do backlight (tema), conteúdo escuro
+    pctx.fillStyle = t.bg;
+    pctx.fillRect(0, 0, 128, 64);
+    for (let x = 0; x < WIDTH; x++) {
+      for (let y = 0; y < HEIGHT; y++) {
+        if (pixels[x][y]) {
+          pctx.fillStyle = t.px;
+          pctx.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+    previewBox.style.background = THEMES[theme].bg;
+  }
+
+  // ===== Undo =====
+  function saveHistory() {
+    history.push(pixels.map(row => row.slice()));
+    if (history.length > 50) history.shift();
+  }
+  function undo() {
+    if (!history.length) return;
+    pixels = history.pop();
+    redraw(); renderPreview();
+  }
+
+  // ===== Coordenadas do canvas -> pixel =====
+  function canvasToPx(e) {
+    const r = canvas.getBoundingClientRect();
+    const ex = (e.clientX - r.left) * (canvas.width / r.width);
+    const ey = (e.clientY - r.top) * (canvas.height / r.height);
+    const [ox, oy] = offsets();
+    const x = Math.floor(ex / scale) - ox;
+    const y = Math.floor(ey / scale) - oy;
+    return [x, y];
+  }
+
+  // ===== Paint =====
+  function paintAt(x, y, mode) {
+    if (x < 0 || x >= work_w || y < 0 || y >= work_h) return;
+    const gx = x + offsets()[0], gy = y + offsets()[1];
+    if (gx < 0 || gx >= WIDTH || gy < 0 || gy >= HEIGHT) return;
+    if (pixels[gx][gy] !== mode) {
+      saveHistory();
+      pixels[gx][gy] = mode;
+      redraw(); renderPreview();
+    }
+  }
+
+  function drawLine(x0, y0, x1, y1) {
+    saveHistory();
+    let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    while (true) {
+      paintAt(x0, y0, 1);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x0 += sx; }
+      if (e2 < dx) { err += dx; y0 += sy; }
+    }
+  }
+
+  // ===== Eventos canvas =====
+  canvas.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const [x, y] = canvasToPx(e);
+    if (e.shiftKey) {
+      if (lineStart) drawLine(lineStart[0], lineStart[1], x, y);
+      lineStart = null;
+    } else {
+      lineStart = [x, y];
+      drawing = true;
+      paintAt(x, y, 1);
+    }
+  });
+  canvas.addEventListener('mousemove', (e) => {
+    const [x, y] = canvasToPx(e);
+    posInfo.textContent = `POS: ${x},${y} · DRAWN: ${drawnCount} px`;
+    if (drawing) paintAt(x, y, 1);
+  });
+  window.addEventListener('mouseup', () => { drawing = false; });
+  canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const [x, y] = canvasToPx(e);
+    paintAt(x, y, 0);
+  });
+
+  // ===== Zoom / dimensões =====
+  function applyDims() {
+    scale = Math.max(2, Math.min(40, parseInt(zoomEl.value) || 8));
+    work_w = Math.max(1, Math.min(WIDTH, parseInt(workWEl.value) || 128));
+    work_h = Math.max(1, Math.min(HEIGHT, parseInt(workHEl.value) || 64));
+    canvas.width = WIDTH * scale;
+    canvas.height = HEIGHT * scale;
+    redraw();
+  }
+  zoomEl.addEventListener('change', applyDims);
+  workWEl.addEventListener('change', applyDims);
+  workHEl.addEventListener('change', applyDims);
+
+  // ===== Tema / invert / grid =====
+  function setTheme(t) {
+    theme = t;
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('th-' + t).classList.add('active');
+    redraw(); renderPreview();
+  }
+  document.getElementById('th-O').onclick = () => setTheme('O');
+  document.getElementById('th-W').onclick = () => setTheme('W');
+  document.getElementById('th-B').onclick = () => setTheme('B');
+
+  document.getElementById('btn-inv').onclick = () => {
+    inverted = !inverted;
+    redraw(); renderPreview();
+  };
+  document.getElementById('btn-lgrid').onclick = () => {
+    showLineGrid = !showLineGrid;
+    document.getElementById('btn-lgrid').classList.toggle('active', showLineGrid);
+    redraw();
+  };
+  document.getElementById('btn-clear').onclick = () => {
+    saveHistory();
+    pixels = Array.from({length: WIDTH}, () => new Uint8Array(HEIGHT));
+    inputEl.value = '';
+    redraw(); renderPreview();
+  };
+
+  // ===== Parse de código C =====
+  function extractVals(raw) {
+    const clean = raw.replace(/\/\*.*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const hxs = clean.match(/0x[0-9A-Fa-f]{2}/g) || [];
+    const bins = clean.match(/0b[01]{8}/g) || [];
+    const decs = clean.match(/(?<![0-9A-Fa-fx])[0-9]{1,3}(?![0-9A-Fa-fx])/g) || [];
+    if (hxs.length) return hxs.map(h => parseInt(h, 16));
+    if (bins.length) return bins.map(b => parseInt(b, 2));
+    if (decs.length) return decs.map(d => parseInt(d, 10)).filter(v => v >= 0 && v <= 255);
+    return [];
+  }
+
+  document.getElementById('btn-parse').onclick = () => {
+    const vals = extractVals(inputEl.value);
+    if (!vals.length) { outputEl.value = '// Nenhum valor hex/binário encontrado no texto.'; return; }
+
+    const total = vals.length;
+    let cw, ch;
+    if (total === 14) { cw = 7; ch = 16; }
+    else if (total === 20) { cw = 10; ch = 16; }
+    else if (total <= 12) { cw = total; ch = 8; }
+    else { cw = Math.ceil(total / 2); ch = 16; }
+
+    saveHistory();
+    pixels = Array.from({length: WIDTH}, () => new Uint8Array(HEIGHT));
+    work_w = cw; work_h = ch;
+    workWEl.value = cw; workHEl.value = ch;
+
+    const [ox, oy] = offsets();
+    for (let i = 0; i < vals.length; i++) {
+      const page = Math.floor(i / cw) * 8;
+      const cx = ox + (i % cw);
+      for (let b = 0; b < 8; b++) {
+        if ((vals[i] >> b) & 1) {
+          const tx = cx, ty = oy + page + b;
+          if (tx < WIDTH && ty < HEIGHT) pixels[tx][ty] = 1;
+        }
+      }
+    }
+    applyDims(); renderPreview();
+    // extrai nome da variável
+    const vm = inputEl.value.match(/\/\s*([a-zA-Z0-9_]+)\s*\//) ||
+              inputEl.value.match(/gStatusLine\[\s*([a-zA-Z0-9_]+)/) ||
+              inputEl.value.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*\[\s*/);
+    if (vm) varName.value = vm[1];
+  };
+
+  // ===== Gerar código C =====
+  function captureBitmap() {
+    const [ox, oy] = offsets();
+    const data = [];
+    const pages = work_h > 8 ? 2 : 1;
+    for (let p = 0; p < pages; p++) {
+      for (let x = 0; x < work_w; x++) {
+        let byte = 0;
+        for (let b = 0; b < 8; b++) {
+          const gy = oy + (p * 8) + b;
+          const gx = ox + x;
+          if (gx < WIDTH && gy < HEIGHT && pixels[gx][gy]) byte |= (1 << b);
+        }
+        data.push(byte);
+      }
+    }
+    return data;
+  }
+
+  function generate(mode) {
+    const data = captureBitmap();
+    const name = varName.value.trim() || 'indicator_x';
+    let out = '';
+    if (mode === 'STATUS') {
+      out = data.map((b, i) => `gStatusLine[${name} + ${i}] |= 0x${b.toString(16).padStart(2, '0').toUpperCase()};`).join('\n');
+    } else if (mode === 'HEX') {
+      out = '{ ' + data.map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(', ') + ' }';
+    } else {
+      out = data.map(b => '0b' + b.toString(2).padStart(8, '0')).join(', ');
+    }
+    outputEl.value = out;
+  }
+  document.getElementById('btn-hex').onclick = () => generate('HEX');
+  document.getElementById('btn-bin').onclick = () => generate('BIN');
+  document.getElementById('btn-status').onclick = () => generate('STATUS');
+
+  // ===== Copiar =====
+  document.getElementById('btn-copy').onclick = () => {
+    navigator.clipboard.writeText(outputEl.value).then(() => {
+      const b = document.getElementById('btn-copy');
+      const t = b.textContent; b.textContent = 'COPIADO!';
+      setTimeout(() => b.textContent = t, 1200);
+    });
+  };
+
+  // ===== Demo: tela de scan do projeto (Batch 09) =====
+  // Layout: PS SCAN▶ SQL3 75%[ ] / 120.300 MHz / APP FOZ / S-meter / AM W
+  function loadScanDemo() {
+    saveHistory();
+    pixels = Array.from({length: WIDTH}, () => new Uint8Array(HEIGHT));
+    work_w = 128; work_h = 64;
+    workWEl.value = 128; workHEl.value = 64;
+
+    // --- Linha 1 (y=0..7): PS SCAN▶    SQL3        75%[ ]
+    drawText(0, 0, 'PS', 1, 1);
+    drawText(14, 0, 'SCAN', 1, 1);
+    drawText(42, 0, '\u25b6', 1, 1);              // ▶
+    drawText(60, 0, 'SQL3', 1, 1);
+    drawText(92, 0, '75%', 1, 1);
+    drawBattery(116, 0, 75);
+
+    // --- Linha 2 (y=8..15): AGC
+    drawText(1, 8, 'AGC-12DB', 1, 1);
+
+    // --- Frequência grande (y=24..37) escala 2x
+    drawText(32, 24, '120.300', 2, 1);
+    drawText(96, 30, 'MHz', 1, 1);
+
+    // --- Label do canal (y=40..46)
+    drawText(42, 40, 'APP FOZ', 1, 1);
+
+    // --- S-meter (y=48..54): "-87dBm S7" + barra
+    drawText(0, 48, '-87DBM', 1, 1);
+    drawText(44, 48, 'S7', 1, 1);
+    drawSMeter(60, 48, 9);                        // 9 blocos de sinal
+
+    // --- Linha final (y=56..62): AM + W
+    drawText(1, 56, 'AM', 1, 1);
+    drawText(20, 56, 'W', 1, 1);
+
+    applyDims();
+    renderPreview();
+    varName.value = 'airband_scan';
+    outputEl.value = '// Tela de scan (exemplo) — 120.300 MHz APP FOZ\n' +
+                     '// Página 0: PS SCAN▶ SQL3 75%[ ]\n' +
+                     '// Pressione HEX/BINARY/STATUS para gerar o array C';
+  }
+
+  document.getElementById('btn-load-demo').onclick = loadScanDemo;
+
+  // ===== Teclas =====
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    switch (e.key.toLowerCase()) {
+      case 'o': setTheme('O'); break;
+      case 'w': setTheme('W'); break;
+      case 'b': setTheme('B'); break;
+      case 'i': document.getElementById('btn-inv').onclick(); break;
+      case 'c': document.getElementById('btn-clear').onclick(); break;
+    }
+  });
+
+  // ===== Init =====
+  applyDims();
+  setTheme('O');
+  renderPreview();
+  document.getElementById('btn-load-demo').onclick();
+})();
+</script>
+</body>
+</html>

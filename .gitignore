@@ -1,0 +1,38 @@
+# Artefatos de build do firmware
+firmware/build/
+firmware/obj/
+*.bin
+*.packed.bin
+*.o
+*.d
+
+# Binários compilados / recursos (utilitários Windows do upstream)
+*.exe
+*.res
+*.obj
+
+# Editor web legado (substituído por ui_editor.html)
+tools/ui_editor.py
+
+# Ferramentas locais de desenvolvimento de UI (não publicar)
+ui/
+
+# Dependências externas (submódulos clonados)
+firmware/src/external/printf/
+firmware/src/external/CMSIS_5/
+
+# Python venvs e caches
+**/.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Backup do firmware de fábrica (não publicar)
+firmware-backup/
+
+# macOS
+.DS_Store
+
+# Editor / temporários
+*.tmp
+*~

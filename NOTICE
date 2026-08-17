@@ -1,0 +1,32 @@
+QAP - Quansheng Airband Project
+PU5XRM Quansheng Airband Scanner Firmware
+
+This product includes software developed as part of the Quansheng UV-K5
+open firmware ecosystem. The firmware in this repository is derived from,
+and builds upon, the following projects:
+
+- DualTachyon / uv-k5-firmware
+  https://github.com/DualTachyon/uv-k5-firmware
+  (original implementation, Apache License 2.0)
+
+- OneOfEleven / uv-k5-firmware-custom
+  https://github.com/OneOfEleven/uv-k5-firmware-custom
+
+- egzumer / uv-k5-firmware-custom
+  https://github.com/egzumer/uv-k5-firmware-custom
+
+- miramir / uv-k5-firmware
+  https://github.com/miramir/uv-k5-firmware
+  (base fork used by this project)
+
+- armel / F4HWN uv-k5-firmware-custom (if applicable)
+  https://github.com/armel/uv-k5-firmware-custom
+
+The web tooling/UI concepts reference the work of:
+- egzumer / uvtools
+  https://egzumer.github.io/uvtools/
+- iu2frl / uvtools-frl
+  https://iu2frl.github.io/uvtools-frl/
+
+All contributions remain under their respective copyright holders and are
+licensed under the Apache License, Version 2.0 (see LICENSE).
