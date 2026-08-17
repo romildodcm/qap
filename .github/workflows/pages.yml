@@ -35,6 +35,7 @@ jobs:
 
       - name: Clonar dependências externas
         run: |
+          mkdir -p firmware/src/external
           cd firmware/src/external
           git clone --depth=1 https://github.com/mpaland/printf
           git clone --depth=1 https://github.com/ARM-software/CMSIS_5.git
