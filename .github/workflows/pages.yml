@@ -33,6 +33,12 @@ jobs:
           load: true
           tags: uvk5-build
 
+      - name: Clonar dependências externas
+        run: |
+          cd firmware/src/external
+          git clone --depth=1 https://github.com/mpaland/printf
+          git clone --depth=1 https://github.com/ARM-software/CMSIS_5.git
+
       - name: Compilar firmware (make clean && make)
         run: |
           docker run --rm -v "$PWD/firmware:/app" -w /app uvk5-build /bin/sh -c "make clean && make"
